@@ -1,49 +1,162 @@
-# model retraining pipeline  with gitops and fastapi
-This is a one scenario of ML model retraining pipeline performed with GitOps tools, GitHub Actions. Usually, model retraining is needed either by some trigger conditions such as data drift or some regular retraining pipeline every week(or so) for concept drifts. Both options are considered in this pipeline. Generally, this tiny self hosted emulation of system design for MLOps that is based on the best-practice recommendations from Google MLops https://cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning
+# 📦 EverLearn ML — Self-Improving MLOps Pipeline
 
-## Flowchart of the system ## 
-![image](https://github.com/Alaboy19/model-retrain-gitops-fastapi/assets/47283347/fbc5aae8-3b17-41d4-bf90-74007c32dc69)
+An *end-to-end machine learning lifecycle pipeline* that uses GitOps principles, **FastAPI**, **MLflow**, and **GitHub Actions** to:
 
-## Some key points considered ##
+✔ Serve models via REST
+✔ Track experiments and versions
+✔ Automate retraining via scheduled or event-based processes
+✔ Reload and promote models in production
+✔ Enable feedback-driven improvements
 
-### MLflow ###
-- provides experiment logging
-- general access to model artifacts for data scientists
-- model reproducability and versioning
-- assesing and comparing models based on metrics
-- assigning aliases for models that ready for different environment such as dev, prod
-  
-### FastAPI ###
-- lightweight, simple and fast protocol that works async with ASGI server Uvicorn
-- compatable with type hints in pyhthon
-- integrated with Pydantic for convinent data types validation
-- integrated with OpenAPI, automaticlaly generating the API docs and Swagger interface under the box in route /docs
-  
-### CI-CD ###
-- Since it is online serving, there is need for fast packaging and deployment of the service to prod, therefore CI-CD is better option than orchestrators such as Ariflow, Prefect
-- Any pushes or pull request must be tested before shipping to prodution, CI-CD is better option there as well
-- Orchestrators could be used further for preparing the data for feature store as a abstraction from data engineerin
-  
-### render ###
-- Free way of virtual machines that lets to deploy service from image for docker registry
+This repo adapts and builds on the original model-retraining-gitops-fastapi design for production-oriented self-learning ML workflows. ([GitHub][1])
 
-## Steps taken to develop the pipeline ##
-1. Reproduce the ml deployment on render with fastapi serving here https://github.com/Alaboy19/model-serving-github-actions-render, since it is one of the fundamental blocks of this pipeline.
-2. Host the mlflow registry somewhere, in this case it is hosted on GCP following the [tutorial](https://medium.com/@andrevargas22/how-to-launch-an-mlflow-server-with-continuous-deployment-on-gcp-in-minutes-7d3a29feff88).
-3. The /trigger route was added to webservice that will trigger the gitub actions workflow externally, with github API.
-4. The /reload-model that gets the last model that assigned with alias of @prod on mlflow
-5. train.py scripts that gets the new_data from static source and checks for data drift, if there is any, it launches the training and pushes the new model with alias to @prod to mlflow registry
-6. retrain.ci-cd.yaml that executes all the steps for retraining
-## Steps to reproduce the code ## 
-1. Either activate a venv and install dependencies with ``` pip install -q -r requriements.txt
-``` OR you can install poetry and run ```poetry install```
-2. Generate token for access to your dockerhub account 
-3. On github actions serctets → add repo secrets for DATA_URL, HOT_RELOAD_URL(route to /reload-model)
-4. Also, generate REPO_TOKEN as a acess to your repo and add it to your repo variables in action, it is needed to authentificate to your repo when requesting the trigger of retrain.yml externally from fasdtapi service on render
-5. Also, add MLFLOW_TRACKING_URI that got from GCP to repo variables 
-6. Follow along the .github.workflows.ci-cd.yml and retrain.yml files
-7. If scheduled retraining and redeploy is needed, uncomment the cron shedule in .github/workflows/retrain.yml
+---
 
-## MLOps mature best-practices as reference ## 
-![image](https://github.com/Alaboy19/model-retraining-gitops-fastapi/assets/47283347/64412c18-9fd3-47d0-b724-07b9f5d889be)
+## 🚀 Project Overview
+
+This system demonstrates a *practical, automated MLops pipeline* capable of:
+
+* Continuous model evaluation and retraining
+* Experiment logging and model registry with MLflow
+* FastAPI inference service
+* GitHub Actions-driven CI/CD retraining
+* Automated production model promotion
+
+This is **EverLearn ML**: offline training + feedback loop + automated retraining. ([GitHub][1])
+
+---
+
+## 🧠 System Flow
+
+1. **Training:** Runs a model training script and logs runs + artifacts to MLflow.
+2. **Model Registry:** MLflow stores model versions with aliases (e.g., `prod`, `staging`).
+3. **Inference Service:** FastAPI serves predictions via REST.
+4. **Trigger API:** FastAPI endpoint triggers retraining workflows.
+5. **GitHub Actions:** Automates retrain → build → deploy steps based on schedules or external triggers.
+6. **Auto Reload:** FastAPI reloads the latest `prod` model from MLflow. ([GitHub][1])
+
+---
+
+## 🧪 Key Technologies
+
+| Component             | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
+| **FastAPI**           | Production-grade REST inference service        |
+| **MLflow**            | Experiment tracking & model registry           |
+| **GitHub Actions**    | CI/CD & automated retraining workflows         |
+| **Docker**            | Containerization for deployment                |
+| **GitOps Principles** | Automated lifecycle control via GitHub updates |
+
+*(Using best-practices inspired by Google’s MLOps automation recommendations.)* ([GitHub][2])
+
+---
+
+## 📁 Repository Structure
+
+```
+.
+├── .github
+│   └── workflows
+│       ├── ci-cd.yml                # Continuous Integration & Docker workflow
+│       └── retrain.yml              # Scheduled retraining workflow
+├── app_model.py                     # FastAPI model serving & trigger endpoints
+├── train.py                        # Model training & retraining logic
+├── config.py                       # Config options for MLflow/registry
+├── good.csv                       # Sample training dataset
+├── requirements.txt               # Python dependencies
+├── Dockerfile                    # Docker image specification
+├── test_app.py                   # Inference service test suite
+└── pyproject.toml                # Poetry config
+```
+
+---
+
+## 📌 How It Works
+
+### 1. **Training & Model Logging**
+
+Training logic in `train.py`:
+
+* Loads training data
+* Trains a model
+* Logs metrics & artifacts to MLflow
+* Tags and registers a production-ready model
+
+Models are registered and retrieved by alias (e.g., `@prod`) for serving. ([GitHub][1])
+
+---
+
+### 2. **FastAPI Service**
+
+Endpoints include:
+
+| Route           | Purpose                                         |
+| --------------- | ----------------------------------------------- |
+| `/predict`      | Returns model predictions                       |
+| `/trigger`      | Triggers retraining workflow externally         |
+| `/reload-model` | Reloads the latest production model from MLflow |
+
+You can explore API docs at `/docs`. ([GitHub][1])
+
+---
+
+### 3. **CI/CD & Retraining Workflows**
+
+Using GitHub Actions workflows in `.github/workflows`:
+
+* `ci-cd.yml`: Tests, builds, and deploys the FastAPI service
+* `retrain.yml`: Retrains the model on a schedule or via `/trigger`
+
+You can enable scheduled retraining by uncommenting the cron schedule in `retrain.yml`. ([GitHub][1])
+
+---
+
+## 🛠️ Setup & Installation
+
+### Install Requirements
+
+```bash
+pip install -r requirements.txt
+```
+
+OR use Poetry:
+
+```bash
+poetry install
+```
+
+### Configure Secrets
+
+Add the following GitHub Actions secrets in your repository:
+
+| Secret                | Purpose                                |
+| --------------------- | -------------------------------------- |
+| `MLFLOW_TRACKING_URI` | Endpoint to your MLflow server         |
+| `REPO_TOKEN`          | GitHub token for triggering workflows  |
+| `DATA_URL`            | (Optional) URL to external data source |
+| `HOT_RELOAD_URL`      | Endpoint for FastAPI reload hook       |
+
+Refer to `.github/workflows/retrain.yml` for retraining setup. ([GitHub][1])
+
+---
+
+## 📈 Deployment & Hosting
+
+This pipeline can be deployed using:
+
+* **Render / Railway / Cloud Run** – Hosting inference service
+* **GCP / AWS / Azure** – Hosting MLflow tracking & registry
+* **Docker Hub** – Container images
+
+---
+
+## 🧩 Extend for EverLearn Features
+
+To turn this into a *self-improving ML system* like EverLearn:
+
+✅ Add an API to collect **user feedback**
+✅ Store feedback data in a database
+✅ Expand `train.py` to load feedback as new training data
+✅ Trigger GitHub Actions retraining when feedback count exceeds a threshold
+✅ Add dashboards for model performance metrics
 
